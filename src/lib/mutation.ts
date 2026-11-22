@@ -145,6 +145,32 @@ export async function updateApplicationStatus(
   return res.json();
 }
 
+export type ApplicationInput = {
+  tuitionId: string;
+  note: string;
+  preferredSchedule?: string;
+  phone?: string;
+};
+
+export async function applyToTuition(
+  data: ApplicationInput
+): Promise<Application> {
+  const res = await fetch(`${API_URL}/applications`, {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+
+  if (!res.ok) {
+    throw new Error(
+      await readErrorMessage(res, "Failed to submit application.")
+    );
+  }
+
+  return res.json();
+}
+
 // The backend returns a Stripe-hosted Checkout URL. The browser redirects to
 // Stripe's payment page; no card data ever touches this app.
 export type ProCheckout = {

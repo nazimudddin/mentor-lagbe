@@ -188,7 +188,7 @@ const NavbarPage = () => {
 
                   {/* Dashboard */}
                   <Link
-                    href="/dashboard"
+                    href={`/dashboard/${role}/overview`}
                     onClick={() => setDropdownOpen(false)}
                     className="flex items-center gap-3 rounded-lg px-3 py-3 text-sm hover:bg-base-200"
                   >

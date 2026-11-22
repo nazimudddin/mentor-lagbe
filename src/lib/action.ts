@@ -55,6 +55,7 @@ export type Tuition = {
   tutorId?: string;
   tutorName?: string;
   tutorEmail?: string;
+  location?: string;
   createdAt?: string;
   updatedAt?: string;
 };
@@ -79,6 +80,78 @@ export const getAllTuitions = async () => {
   return res.json();
 };
 
+type RawTuition = Partial<Omit<Tuition, "id">> & {
+  _id?: string;
+  id?: string;
+};
+
+function normalizeTuition(raw: RawTuition): Tuition {
+  return {
+    id: raw.id ?? raw._id ?? "",
+    title: raw.title ?? "Untitled tuition",
+    subject: raw.subject ?? "General",
+    classLevel: raw.classLevel ?? "Not specified",
+    mode: raw.mode ?? "Online",
+    monthlyFee: Number(raw.monthlyFee) || 0,
+    daysPerWeek: Number(raw.daysPerWeek) || 0,
+    description: raw.description ?? "",
+    bannerImage: raw.bannerImage,
+    approvalStatus: raw.approvalStatus ?? "pending",
+    isActive: raw.isActive !== false,
+    tutorId: raw.tutorId,
+    tutorName: raw.tutorName,
+    tutorEmail: raw.tutorEmail,
+    location: raw.location,
+    createdAt: raw.createdAt,
+    updatedAt: raw.updatedAt,
+  };
+}
+
+// The public list endpoint returns raw Mongo documents (`_id`) and includes
+// every moderation state, so normalise the shape and keep approved, active
+// tuitions only.
+export type TuitionSearchParams = {
+  q?: string;
+  subject?: string;
+  classLevel?: string;
+  mode?: string;
+  minFee?: string;
+  maxFee?: string;
+};
+
+export const getApprovedTuitions = async (
+  params?: TuitionSearchParams
+): Promise<Tuition[]> => {
+  const searchParams = new URLSearchParams();
+
+  if (params?.q) searchParams.set("q", params.q);
+  if (params?.subject) searchParams.set("subject", params.subject);
+  if (params?.classLevel) searchParams.set("classLevel", params.classLevel);
+  if (params?.mode) searchParams.set("mode", params.mode);
+  if (params?.minFee) searchParams.set("minFee", params.minFee);
+  if (params?.maxFee) searchParams.set("maxFee", params.maxFee);
+
+  const query = searchParams.toString();
+
+  const res = await fetch(
+    `${API_URL}/add-tuitions${query ? `?${query}` : ""}`,
+    {
+      cache: "no-store",
+    }
+  );
+
+  if (!res.ok) {
+    throw new Error(await readErrorMessage(res, "Failed to fetch tuitions"));
+  }
+
+  const data: unknown = await res.json();
+
+  if (!Array.isArray(data)) return [];
+
+  return (data as RawTuition[])
+    .map(normalizeTuition)
+    .filter((tuition) => Boolean(tuition.id));
+};
 export const getMyTuitions = async (): Promise<Tuition[]> => {
   const res = await fetch(`${API_URL}/tuitions/mine`, {
     credentials: "include",

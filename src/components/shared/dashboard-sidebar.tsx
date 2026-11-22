@@ -39,7 +39,7 @@ const dashboardSidebarItem = {
     },
     {
       title: "Browse Tuitions",
-      href: "/tuitions",
+      href: "/dashboard/student/browes-tutions",
       icon: BookOpen,
     },
     {
@@ -121,24 +121,17 @@ export function DashboardSidebar() {
 
   const { data: session } = useSession();
 
-const role = (session?.user as { role?: UserRole } | undefined)?.role;
-  const sidebarItems = role
-    ? dashboardSidebarItem[role]
-    : [];
+  const role = (session?.user as { role?: UserRole } | undefined)?.role;
+  const sidebarItems = role ? dashboardSidebarItem[role] : [];
 
   return (
     <Sidebar>
       {/* Sidebar Header */}
       <SidebarHeader>
-        <Link
-          href="/"
-          className="flex items-center gap-2 px-2 py-4"
-        >
+        <Link href="/" className="flex items-center gap-2 px-2 py-4">
           <GraduationCap className="h-7 w-7 text-primary" />
 
-          <span className="text-xl font-bold">
-            MentorLagbe
-          </span>
+          <span className="text-xl font-bold">MentorLagbe</span>
         </Link>
       </SidebarHeader>
 
@@ -160,12 +153,12 @@ const role = (session?.user as { role?: UserRole } | undefined)?.role;
               return (
                 <SidebarMenuItem key={item.href}>
                   <SidebarMenuButton
-  render={<Link href={item.href} />}
-  isActive={isActive}
->
-  <Icon />
-  <span>{item.title}</span>
-</SidebarMenuButton>
+                    render={<Link href={item.href} />}
+                    isActive={isActive}
+                  >
+                    <Icon />
+                    <span>{item.title}</span>
+                  </SidebarMenuButton>
                 </SidebarMenuItem>
               );
             })}
@@ -178,12 +171,10 @@ const role = (session?.user as { role?: UserRole } | undefined)?.role;
         <SidebarGroup>
           <SidebarMenu>
             <SidebarMenuItem>
-             <SidebarMenuButton
-  render={<Link href="/" />}
->
-  <Settings />
-  <span>Back to Home</span>
-</SidebarMenuButton>
+              <SidebarMenuButton render={<Link href="/" />}>
+                <Settings />
+                <span>Back to Home</span>
+              </SidebarMenuButton>
             </SidebarMenuItem>
           </SidebarMenu>
         </SidebarGroup>
