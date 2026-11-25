@@ -11,6 +11,7 @@ import {
   CardFooter,
 } from "@/components/ui/card";
 import { ApplyButton } from "@/components/tuitions/apply-button";
+import { SaveTuitionButton } from "@/components/tuitions/save-tuition-button";
 import type { Tuition } from "@/lib/action";
 
 type TuitionCardProps = {
@@ -56,6 +57,12 @@ export function TuitionCard({ tuition }: TuitionCardProps) {
             {tuition.subject}
           </span>
         </div>
+
+        <SaveTuitionButton
+          tuitionId={tuition.id}
+          tuitionTitle={tuition.title}
+          className="absolute bottom-3 right-3"
+        />
       </div>
 
       <CardContent className="flex flex-1 flex-col gap-3 py-4">

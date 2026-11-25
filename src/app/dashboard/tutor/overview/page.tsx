@@ -354,11 +354,20 @@ export default function TutorOverviewPage() {
                   {recentApplicants.map((application) => (
                     <div
                       key={application.id}
-                      className="flex items-start justify-between gap-3 px-5 py-4"
+                      className={cn(
+                        "flex items-start justify-between gap-3 px-5 py-4",
+                        application.studentIsPro && "bg-amber-50/60"
+                      )}
                     >
                       <div className="min-w-0">
-                        <p className="truncate text-sm font-medium text-slate-900">
+                        <p className="flex flex-wrap items-center gap-1.5 truncate text-sm font-medium text-slate-900">
                           {application.studentName}
+                          {application.studentIsPro ? (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-800 ring-1 ring-inset ring-amber-200">
+                              <Crown className="h-3 w-3" />
+                              Pro
+                            </span>
+                          ) : null}
                         </p>
                         <p className="truncate text-xs text-slate-500">
                           {application.studentEmail}

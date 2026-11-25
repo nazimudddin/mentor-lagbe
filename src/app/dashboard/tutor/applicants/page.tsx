@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 import {
   AlertCircle,
   Check,
+  Crown,
   Loader2,
   RefreshCw,
   Users,
@@ -232,11 +233,20 @@ export default function ApplicantsPage() {
                     return (
                       <tr
                         key={application.id}
-                        className="align-top hover:bg-slate-50/70"
+                        className={cn(
+                          "align-top hover:bg-slate-50/70",
+                          application.studentIsPro && "bg-amber-50/60"
+                        )}
                       >
                         <td className="px-5 py-4">
-                          <p className="font-medium text-slate-900">
+                          <p className="flex flex-wrap items-center gap-1.5 font-medium text-slate-900">
                             {application.studentName}
+                            {application.studentIsPro ? (
+                              <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-800 ring-1 ring-inset ring-amber-200">
+                                <Crown className="h-3 w-3" />
+                                Pro
+                              </span>
+                            ) : null}
                           </p>
                           <p className="mt-0.5 text-xs text-slate-500">
                             {application.studentEmail || "—"}

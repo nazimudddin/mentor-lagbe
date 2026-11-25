@@ -1,4 +1,11 @@
-import { API_URL, type Application, type Tuition } from "./action";
+import {
+  API_URL,
+  type AdminRole,
+  type AdminUser,
+  type Application,
+  type ProfileData,
+  type Tuition,
+} from "./action";
 
 export type TuitionInput = {
   title: string;
@@ -145,6 +152,46 @@ export async function updateApplicationStatus(
   return res.json();
 }
 
+export async function updateTuitionApproval(
+  id: string,
+  approvalStatus: "approved" | "rejected"
+): Promise<Tuition> {
+  const res = await fetch(`${API_URL}/admin/tuitions/${id}/approval`, {
+    method: "PATCH",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ approvalStatus }),
+  });
+
+  if (!res.ok) {
+    throw new Error(
+      await readErrorMessage(res, "Failed to update tuition status.")
+    );
+  }
+
+  return res.json();
+}
+
+export async function updateUserRole(
+  id: string,
+  role: AdminRole
+): Promise<{ message: string; user: AdminUser }> {
+  const res = await fetch(`${API_URL}/admin/users/${id}/role`, {
+    method: "PATCH",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ role }),
+  });
+
+  if (!res.ok) {
+    throw new Error(
+      await readErrorMessage(res, "Failed to update user role.")
+    );
+  }
+
+  return res.json();
+}
+
 export type ApplicationInput = {
   tuitionId: string;
   note: string;
@@ -176,15 +223,18 @@ export async function applyToTuition(
 export type ProCheckout = {
   url: string;
   sessionId: string;
+  plan?: "student_pro" | "tutor_pro";
   publishableKey?: string;
 };
 
-export async function createProCheckout(): Promise<ProCheckout> {
+export async function createProCheckout(
+  plan: "student_pro" | "tutor_pro" = "tutor_pro"
+): Promise<ProCheckout> {
   const res = await fetch(`${API_URL}/payments/checkout`, {
     method: "POST",
     credentials: "include",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ plan: "tutor_pro" }),
+    body: JSON.stringify({ plan }),
   });
 
   if (!res.ok) {
@@ -198,11 +248,14 @@ export async function createProCheckout(): Promise<ProCheckout> {
 export type ProfileUpdateInput = {
   name: string;
   phone: string;
+  address?: string;
   bio: string;
   image?: string;
 };
 
-export async function updateProfile(data: ProfileUpdateInput) {
+export async function updateProfile(
+  data: ProfileUpdateInput
+): Promise<{ message: string; user: ProfileData }> {
   const res = await fetch(`${API_URL}/profile`, {
     method: "PATCH",
     credentials: "include",
@@ -215,6 +268,43 @@ export async function updateProfile(data: ProfileUpdateInput) {
   if (!res.ok) {
     throw new Error(
       await readErrorMessage(res, "Failed to update profile.")
+    );
+  }
+
+  return res.json();
+}
+
+export async function saveTuition(
+  tuitionId: string
+): Promise<{ tuitionId: string; saved: boolean }> {
+  const res = await fetch(`${API_URL}/saved-tuitions`, {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ tuitionId }),
+  });
+
+  if (!res.ok) {
+    throw new Error(await readErrorMessage(res, "Failed to save tuition."));
+  }
+
+  return res.json();
+}
+
+export async function removeSavedTuition(
+  tuitionId: string
+): Promise<{ tuitionId: string; saved: boolean }> {
+  const res = await fetch(
+    `${API_URL}/saved-tuitions/${encodeURIComponent(tuitionId)}`,
+    {
+      method: "DELETE",
+      credentials: "include",
+    }
+  );
+
+  if (!res.ok) {
+    throw new Error(
+      await readErrorMessage(res, "Failed to remove saved tuition.")
     );
   }
 
@@ -248,4 +338,18 @@ export async function uploadProfileImage(file: File): Promise<string> {
   }
 
   return json.data.url;
+}
+
+
+export async function cancelApplication(id: string): Promise<void> {
+  const res = await fetch(`${API_URL}/applications/${id}`, {
+    method: "DELETE",
+    credentials: "include",
+  });
+
+  if (!res.ok) {
+    throw new Error(
+      await readErrorMessage(res, "Failed to cancel application.")
+    );
+  }
 }

@@ -12,6 +12,7 @@ import {
   Users,
   PlusCircle,
   CreditCard,
+  Crown,
   GraduationCap,
   Settings,
 } from "lucide-react";
@@ -39,7 +40,7 @@ const dashboardSidebarItem = {
     },
     {
       title: "Browse Tuitions",
-      href: "/dashboard/student/browes-tutions",
+      href: "/dashboard/student/browse-tuitions",
       icon: BookOpen,
     },
     {
@@ -51,6 +52,11 @@ const dashboardSidebarItem = {
       title: "Saved Tuitions",
       href: "/dashboard/student/saved-tuitions",
       icon: Bookmark,
+    },
+    {
+      title: "Upgrade to Pro",
+      href: "/dashboard/student/upgrade-pro",
+      icon: Crown,
     },
     {
       title: "Update Profile",
@@ -90,7 +96,7 @@ const dashboardSidebarItem = {
   admin: [
     {
       title: "Overview",
-      href: "/dashboard/admin/overview",
+      href: "/dashboard/admin",
       icon: LayoutDashboard,
     },
     {

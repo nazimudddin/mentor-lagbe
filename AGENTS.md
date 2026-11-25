@@ -1,10 +1,11 @@
 # MentorLagbe — Agent Blueprint
 
-> **Status:** Planning document only. No application code for the phases below has been
-> written yet. This file is the single source of truth for architecture, scope, data
-> contracts, and delivery order. Update it whenever a decision changes.
+> **Status:** Implementation in progress (updated 2026-11-24). The student dashboard
+> features, the Student Pro $10 checkout/webhook flow, the Free 5-bookmark cap,
+> unlimited Pro bookmarks, and Pro-first applicant ranking are implemented. See
+> §19–§21 for the latest completed/remaining list.
 >
-> **Project root:** `mentor-lagbe` · **Database:** `mentor-lagbe` · **Today:** 2026-11-20
+> **Project root:** `mentor-lagbe` · **Database:** `mentor-lagbe` · **Today:** 2026-11-24
 
 ## Contents
 
@@ -70,10 +71,11 @@ Tutor posts tuition (pending)
 
 Monetisation:
 
+- **Free student:** max **5** saved tuitions; applying and tracking stay unlimited.
 - **Free tutor:** max **2** tuition posts, otherwise full CRUD.
 - **Tutor Pro:** **$15** one-time checkout → unlimited posts.
-- **Student Pro:** **$10** one-time checkout → pro badge/priority (product value can be
-  defined as priority application highlighting; do not gate core applying).
+- **Student Pro:** **$10** one-time checkout → unlimited saved tuitions, pro badge, and
+  priority applicant ranking (do not gate core applying).
 - Payments update `users.plan` to `'pro'` and create a `payments` record.
 
 ---
@@ -1231,6 +1233,177 @@ owner disagrees.
 | UI system? | shadcn/ui only; remove DaisyUI classes |
 | Accept behavior? | Accept one → close tuition → reject remaining pending |
 | Delete tuition with applications? | Cascade-delete applications (or block if accepted) |
-| Student Pro benefit? | Badge + priority highlight; applying stays free |
+| Student Pro benefit? | Unlimited bookmarks + badge + Pro-first applicant ranking; applying stays free |
 | Email verification? | Off for the demo |
 | Optional features? | Pagination, dark/light theme, bookmarks (then AI seed/ratings) |
+
+---
+
+## 19. Implementation status (2026-11-23) — Student dashboard pass
+
+### Completed
+
+- **Saved Tuitions**
+  - Backend (`mentorLagbe-server/index.js`): `savedTuitions` collection with unique
+    `{ studentId, tuitionId }` and recent-by-student indexes; `GET /saved-tuitions`,
+    `POST /saved-tuitions`, `DELETE /saved-tuitions/:tuitionId`. All routes are
+    student-only and scoped to the signed-in student. Save/remove are idempotent.
+  - Frontend: `src/components/tuitions/saved-tuitions-provider.tsx` keeps one saved-id set
+    for the student dashboard (no per-card requests), `save-tuition-button.tsx` adds the
+    bookmark toggle to `TuitionCard`, and
+    `src/app/dashboard/student/saved-tuitions/page.tsx` lists saved tuitions with loading,
+    empty, error, detail-dialog, remove-confirmation, and toast states.
+- **Student Overview**
+  - Backend: `GET /student/overview` returns total/pending/accepted/rejected application
+    counts, saved count, plan, and the 5 most recent applications enriched with tutor and
+    fee data. Student-only.
+  - Frontend: `src/app/dashboard/student/overview/page.tsx` renders four stat cards,
+    recent applications, quick links to browse/applications/saved/profile, loading
+    skeletons, error retry, and empty states.
+- **Student Profile**
+  - Backend: `GET /profile` returns the full profile; `PATCH /profile` now accepts partial
+    `name`, `phone`, `address`, `bio`, and `image` updates (email/role/plan remain
+    read-only). Added the `users.address` field (Mongo needs no migration).
+  - Frontend: `src/app/dashboard/student/update-profile/page.tsx` loads the profile,
+    validates name/phone/address/bio and image type/size, uploads the photo, shows role/plan
+    badges, and refreshes the session/Navbar after a successful save.
+- **Route protection**
+  - `src/app/dashboard/student/layout.tsx` guards every student page: pending sessions show
+    a loader, guests are sent to `/sign-in?next=…`, and non-student roles are redirected to
+    their own dashboard. Backend routes independently enforce `auth` + `role === "student"`.
+  - `/sign-in` now honors a safe internal `next` path after login.
+- **Verification**: `npx tsc --noEmit` passes. `npx eslint` on all changed files passes with
+  no errors (only pre-existing warnings in `browse-tuitions`). Backend endpoints were smoke
+  tested against MongoDB (profile read/update/restore, save/list/duplicate/remove, overview
+  stats with and without an application, 401 when signed out); test documents were removed.
+  `npm run build` still fails on the pre-existing `"/"` prerender error described below.
+
+### Remaining
+
+1. Fix the pre-existing `"/"` build failure: `src/components/shared/featured-tutions.tsx`
+   calls `getAllTuitions()` (uncached `fetch`) outside `<Suspense>`. Use `"use cache"` +
+   `cacheTag`, a `<Suspense>` boundary, or `export const instant = false` on the home page.
+2. Fix the pre-existing lint error in `src/app/dashboard/tutor/update-profile/page.tsx`
+   (`react-hooks/set-state-in-effect`) if the tutor profile page is touched.
+3. Add a public tuition detail route (`/tuitions/[id]`) and link saved/detail views to it;
+   saved tuitions currently use an in-page details dialog.
+4. Remaining product work from §14: public catalog/home polish, admin operations, and the
+   optional Student Pro checkout. Profile fields from §5.2 that do not exist yet
+   (`institution`, `classLevel`, `location`) can be added the same way as `address`.
+
+### Blockers / decisions
+
+- Saved tuitions live in a separate `savedTuitions` collection (not an array on the user)
+  so joins and unique constraints stay simple.
+- The backend stores auth collections as singular `user`/`session` (the current adapter
+  behavior); domain code keeps using `String(_id)` ids.
+- The dashboard's route protection is client-side (session-aware) because auth is handled
+  by BetterAuth in the Next route handler; the Express API remains the authoritative guard.
+
+---
+
+## 20. Implementation status (2026-11-24) — Student Pro subscription
+
+> **Superseded in part by §21:** the assignment also requires a Free 5-bookmark cap,
+> unlimited Pro bookmarks, and Pro-first applicant ranking. §20's “display-only”
+> bookmark statement is historical.
+
+### Completed
+
+- **Product scope (kept exactly to §1/§8.1):** Free students keep every core action
+  (apply, track, save). Student Pro is a **one-time $10** checkout that adds the Pro badge
+  and priority application highlighting. No application/save limits were added.
+- **Backend (`mentorLagbe-server/index.js`)**
+  - Shared `PRO_PLANS` map: Tutor Pro `1500` cents, Student Pro `1000` cents; Tutor
+    checkout behaviour is unchanged.
+  - `GET /student/plan` returns `{ plan, status, isPro, price, currency, since, expiresAt }`.
+    `expiresAt` is `null` because the purchase is one-time.
+  - `GET /tutor/applications` / `GET /tutor/overview` join each applicant's current plan
+    live and expose `studentPlan` / `studentIsPro` for highlighting.
+  - `/payments/checkout`, `/payments/verify`, `/payments/webhook`, and
+    `completeCheckoutSession` stay the only upgrade path: Stripe must report a paid,
+    signature-verified session whose `metadata.plan` matches the user's role before
+    `users.plan` becomes `"pro"`.
+  - `payments` documents store `userId`, `userEmail`, `plan`, `amount` (cents), `currency`,
+    `stripeSessionId`, `stripePaymentIntentId`, `status`, `createdAt`, `completedAt`.
+  - Status/expiry rules: `checkout.session.completed` /
+    `checkout.session.async_payment_succeeded` complete the payment and upgrade;
+    `checkout.session.expired` / `checkout.session.async_payment_failed` mark a pending
+    payment `failed` and never downgrade the user. Replays are idempotent.
+- **Frontend**
+  - `src/app/dashboard/student/upgrade-pro/page.tsx`: $10 Free vs Pro comparison, Pro
+    Active status, member-since date, no-expiry note, Stripe test-mode note, payment
+    history, and post-checkout verification.
+  - `src/app/dashboard/tutor/applicants/page.tsx` and `overview/page.tsx`: amber highlight
+    and crown **Pro** badge for Pro applicants.
+  - `src/lib/action.ts`: plan/application types extended.
+  - `src/app/(root)/page.tsx`: `export const instant = false` fixes the pre-existing
+    featured-tuitions prerender failure.
+
+### Verification
+
+- `npx tsc --noEmit` passes.
+- `npm run build` passes (24/24 pages).
+- `npx eslint` on all changed files passes.
+- A temporary integration test (removed after the run; MongoDB + Stripe test keys,
+  temporary `:5001` server, signed webhook secret, test data removed) verified: free→pro
+  plan, $10 test-mode Stripe session, pending/completed/failed payment records, invalid
+  signature rejection, expiry no-upgrade, paid webhook upgrade, idempotent replay,
+  already-Pro rejection, and Pro applicant highlighting for both Pro and Free students.
+- A temporary headless-Chrome UI smoke test (removed after the run) verified the free plan
+  page, `$10` Student Pro card, test-mode note, redirect to `checkout.stripe.com`, pending
+  `payments` row, cancel return with query cleanup, and no upgrade after cancelling.
+
+### Remaining
+
+1. Set `STRIPE_WEBHOOK_SECRET` from `stripe listen` (or the Stripe dashboard) and restart
+   the backend for real webhook delivery; `/payments/verify` is the secure fallback.
+2. The pre-existing `react-hooks/set-state-in-effect` lint error in
+   `src/app/dashboard/tutor/update-profile/page.tsx` is unrelated and still fails
+   `npm run lint`.
+3. Public catalog/home polish, admin operations, and a public `/tuitions/[id]` route remain
+   from §14.
+
+---
+
+## 21. Implementation status (2026-11-24) — Free/Pro restriction review
+
+### Completed
+
+- **Free 5-bookmark cap** (`mentorLagbe-server/index.js`): `POST /saved-tuitions` rejects
+  a sixth distinct save for a Free student with `403 PLAN_LIMIT` (`limit: 5`). Duplicate
+  saves remain idempotent at the cap, removing one frees a slot, and Pro students are
+  unlimited. `GET /student/plan` now returns `savedCount`, `savedLimit`, and
+  `canSaveMore`.
+- **Priority booking** (`GET /tutor/applications`): Pro applicants are ranked before Free
+  applicants, newest-first within each group. Existing amber highlighting and Pro badge
+  are retained.
+- **Student UI:** the saved-tuitions page shows `X of 5 bookmarks used`, an
+  `Unlimited bookmarks` label for Pro, and an upgrade banner at the cap. The upgrade page
+  now lists the actual Free/Pro bookmark benefits.
+- **Stripe price integrity:** Student Pro Checkout disables Adaptive Pricing so the
+  hosted page shows **$10.00 USD**. Tutor Pro checkout is unchanged.
+- **Verification:** a temporary integration suite (removed after the run) confirmed the
+  5-save cap, duplicate/remove behavior, 8-save Pro path, Pro-first applicant order,
+  test-mode $10 Checkout session, invalid/expired/paid webhook handling, idempotent
+  replay, database `plan/proSince` update, `payments` amount/currency/status, payment
+  history, already-Pro rejection, and unchanged $15 Tutor Pro checkout. Headless Chrome
+  confirmed the hosted page displays **$10.00**, the Free saved page shows
+  `5 of 5 bookmarks used` plus the upgrade banner, the Pro saved page shows
+  `Unlimited bookmarks`, and the upgrade page lists both bookmark benefits.
+  `npx tsc --noEmit` and changed-file ESLint pass, and `npm run build` passes.
+
+### Remaining
+
+1. Set `STRIPE_WEBHOOK_SECRET` for real local webhook delivery; `/payments/verify` remains
+   the fallback.
+2. The pre-existing tutor-profile lint error still fails full `npm run lint`.
+3. The hosted Stripe card form was not submitted in headless Chrome; the paid path was
+   verified with a real test-mode session plus a signed webhook.
+
+### Decisions
+
+- Free = 5 saved tuitions; Pro = unlimited. This supersedes the earlier display-only
+  bookmark interpretation.
+- Priority booking = Pro-first ranking in the tutor applicant queue, with highlighting
+  retained.

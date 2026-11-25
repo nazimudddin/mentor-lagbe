@@ -19,6 +19,10 @@ export type Application = {
   updatedAt?: string;
   tuitionApprovalStatus?: string;
   tuitionIsActive?: boolean;
+  tutorName?: string;
+  monthlyFee?: number;
+  studentPlan?: "free" | "pro" | string;
+  studentIsPro?: boolean;
 };
 
 export type TutorOverview = {
@@ -38,6 +42,102 @@ export type TutorPlan = {
   limit: number | null;
   canPost: boolean;
   isPro: boolean;
+};
+
+export type StudentPlan = {
+  plan: "free" | "pro" | string;
+  status?: "active" | "free" | string;
+  isPro: boolean;
+  price: number;
+  currency: string;
+  since?: string | null;
+  expiresAt?: string | null;
+  savedCount?: number;
+  savedLimit?: number | null;
+  canSaveMore?: boolean;
+};
+
+export type PaymentRecord = {
+  id: string;
+  plan: string;
+  amount: number;
+  currency: string;
+  status: "pending" | "completed" | "failed" | "refunded" | string;
+  createdAt?: string;
+  completedAt?: string;
+};
+
+export type AdminTransaction = {
+  id: string;
+  userName: string;
+  userEmail: string;
+  role: string;
+  plan: string;
+  planName: string;
+  amount: number;
+  currency: string;
+  status: "completed" | string;
+  transactionId: string;
+  paymentDate?: string | null;
+};
+
+export type AdminRole = "student" | "tutor" | "admin";
+
+export type AdminUser = {
+  id: string;
+  name: string;
+  email: string;
+  role: AdminRole | string;
+  plan?: string;
+  createdAt?: string | null;
+  updatedAt?: string | null;
+};
+
+export type AdminOverview = {
+  stats: {
+    totalUsers: number;
+    totalStudents: number;
+    totalTutors: number;
+    totalAdmins: number;
+    totalTuitions: number;
+    pendingTuitions: number;
+    approvedTuitions: number;
+    rejectedTuitions: number;
+    completedPayments: number;
+    totalRevenue: number;
+    currency: string;
+  };
+};
+
+export type StudentOverview = {
+  stats: {
+    totalApplications: number;
+    pendingApplications: number;
+    acceptedApplications: number;
+    rejectedApplications: number;
+    savedTuitions: number;
+    plan: "free" | "pro" | string;
+  };
+  recentApplications: Application[];
+};
+
+export type ProfileData = {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  address: string;
+  bio: string;
+  image: string;
+  role: string;
+  plan: string;
+  proSince?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+};
+
+export type SavedTuition = Tuition & {
+  savedAt?: string;
 };
 
 export type Tuition = {
@@ -107,9 +207,9 @@ function normalizeTuition(raw: RawTuition): Tuition {
   };
 }
 
-// The public list endpoint returns raw Mongo documents (`_id`) and includes
-// every moderation state, so normalise the shape and keep approved, active
-// tuitions only.
+// The public list endpoint returns raw Mongo documents (`_id`). Normalise the
+// shape and additionally keep approved, active tuitions only so the public
+// Browse Tuitions page can never render a pending or rejected post.
 export type TuitionSearchParams = {
   q?: string;
   subject?: string;
@@ -150,7 +250,12 @@ export const getApprovedTuitions = async (
 
   return (data as RawTuition[])
     .map(normalizeTuition)
-    .filter((tuition) => Boolean(tuition.id));
+    .filter(
+      (tuition) =>
+        Boolean(tuition.id) &&
+        tuition.approvalStatus === "approved" &&
+        tuition.isActive
+    );
 };
 export const getMyTuitions = async (): Promise<Tuition[]> => {
   const res = await fetch(`${API_URL}/tuitions/mine`, {
@@ -163,6 +268,78 @@ export const getMyTuitions = async (): Promise<Tuition[]> => {
   }
 
   return res.json();
+};
+
+export const getAdminTuitions = async (): Promise<Tuition[]> => {
+  const res = await fetch(`${API_URL}/admin/tuitions`, {
+    credentials: "include",
+    cache: "no-store",
+  });
+
+  if (!res.ok) {
+    throw new Error(
+      await readErrorMessage(res, "Failed to load tuitions.")
+    );
+  }
+
+  const data: unknown = await res.json();
+
+  if (!Array.isArray(data)) return [];
+
+  return (data as RawTuition[])
+    .map(normalizeTuition)
+    .filter((tuition) => Boolean(tuition.id));
+};
+
+export const getAdminTransactions = async (): Promise<AdminTransaction[]> => {
+  const res = await fetch(`${API_URL}/admin/transactions`, {
+    credentials: "include",
+    cache: "no-store",
+  });
+
+  if (!res.ok) {
+    throw new Error(
+      await readErrorMessage(res, "Failed to load transactions.")
+    );
+  }
+
+  const data: unknown = await res.json();
+
+  if (!Array.isArray(data)) return [];
+
+  return data as AdminTransaction[];
+};
+
+export const getAdminOverview = async (): Promise<AdminOverview> => {
+  const res = await fetch(`${API_URL}/admin/overview`, {
+    credentials: "include",
+    cache: "no-store",
+  });
+
+  if (!res.ok) {
+    throw new Error(
+      await readErrorMessage(res, "Failed to load admin statistics.")
+    );
+  }
+
+  return res.json();
+};
+
+export const getAdminUsers = async (): Promise<AdminUser[]> => {
+  const res = await fetch(`${API_URL}/admin/users`, {
+    credentials: "include",
+    cache: "no-store",
+  });
+
+  if (!res.ok) {
+    throw new Error(await readErrorMessage(res, "Failed to load users."));
+  }
+
+  const data: unknown = await res.json();
+
+  if (!Array.isArray(data)) return [];
+
+  return data as AdminUser[];
 };
 
 export const getTuitionById = async (id: string): Promise<Tuition> => {
@@ -223,6 +400,40 @@ export const getTutorPlan = async (): Promise<TutorPlan> => {
   return res.json();
 };
 
+export const getStudentPlan = async (): Promise<StudentPlan> => {
+  const res = await fetch(`${API_URL}/student/plan`, {
+    credentials: "include",
+    cache: "no-store",
+  });
+
+  if (!res.ok) {
+    throw new Error(
+      await readErrorMessage(res, "Failed to load your plan details.")
+    );
+  }
+
+  return res.json();
+};
+
+export const getMyPayments = async (): Promise<PaymentRecord[]> => {
+  const res = await fetch(`${API_URL}/payments/mine`, {
+    credentials: "include",
+    cache: "no-store",
+  });
+
+  if (!res.ok) {
+    throw new Error(
+      await readErrorMessage(res, "Failed to load your payment history.")
+    );
+  }
+
+  const data: unknown = await res.json();
+
+  if (!Array.isArray(data)) return [];
+
+  return data as PaymentRecord[];
+};
+
 export type PaymentVerification = {
   plan: "pro" | string;
   sessionId: string;
@@ -245,6 +456,74 @@ export const verifyProPayment = async (
     throw new Error(
       await readErrorMessage(res, "Failed to verify your payment.")
     );
+  }
+
+  return res.json();
+};
+
+
+export const getMyApplications = async (): Promise<Application[]> => {
+  const res = await fetch(`${API_URL}/student/applications`, {
+    credentials: "include",
+    cache: "no-store",
+  });
+
+  if (!res.ok) {
+    throw new Error(
+      await readErrorMessage(res, "Failed to load your applications.")
+    );
+  }
+
+  return res.json();
+};
+
+export const getStudentOverview = async (): Promise<StudentOverview> => {
+  const res = await fetch(`${API_URL}/student/overview`, {
+    credentials: "include",
+    cache: "no-store",
+  });
+
+  if (!res.ok) {
+    throw new Error(
+      await readErrorMessage(res, "Failed to load your dashboard.")
+    );
+  }
+
+  return res.json();
+};
+
+export const getSavedTuitions = async (): Promise<SavedTuition[]> => {
+  const res = await fetch(`${API_URL}/saved-tuitions`, {
+    credentials: "include",
+    cache: "no-store",
+  });
+
+  if (!res.ok) {
+    throw new Error(
+      await readErrorMessage(res, "Failed to load your saved tuitions.")
+    );
+  }
+
+  const data: unknown = await res.json();
+
+  if (!Array.isArray(data)) return [];
+
+  return (data as (RawTuition & { savedAt?: string })[])
+    .map((raw) => ({
+      ...normalizeTuition(raw),
+      savedAt: raw.savedAt,
+    }))
+    .filter((tuition) => Boolean(tuition.id));
+};
+
+export const getMyProfile = async (): Promise<ProfileData> => {
+  const res = await fetch(`${API_URL}/profile`, {
+    credentials: "include",
+    cache: "no-store",
+  });
+
+  if (!res.ok) {
+    throw new Error(await readErrorMessage(res, "Failed to load your profile."));
   }
 
   return res.json();

@@ -1,5 +1,5 @@
-const Page = () => {
-  return <div>Coming soon</div>;
-};
+import { redirect } from "next/navigation";
 
-export default Page;
+export default function AdminOverviewRedirectPage() {
+  redirect("/dashboard/admin");
+}

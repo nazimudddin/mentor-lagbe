@@ -54,8 +54,17 @@ const router = useRouter()
 
     if(data){
         console.log("Login successful:", data);
-        router.push("/")
-        
+
+        const nextParam = new URLSearchParams(window.location.search).get(
+          "next"
+        );
+        const safeNext =
+          nextParam && nextParam.startsWith("/") && !nextParam.startsWith("//")
+            ? nextParam
+            : "/";
+
+        router.push(safeNext);
+        router.refresh();
     }
     } catch (error) {
       console.log("Login error:", error);
