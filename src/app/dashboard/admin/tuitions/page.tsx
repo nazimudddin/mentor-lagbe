@@ -65,6 +65,8 @@ export default function AdminTuitionsPage() {
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<StatusFilter>("all");
   const [updating, setUpdating] = useState<UpdatingState | null>(null);
+  const [rejectTarget, setRejectTarget] = useState<Tuition | null>(null);
+  const [rejectionReason, setRejectionReason] = useState("");
 
   const loadTuitions = useCallback(async () => {
     setIsLoading(true);
@@ -133,14 +135,15 @@ export default function AdminTuitionsPage() {
 
   const handleApproval = async (
     tuition: Tuition,
-    status: "approved" | "rejected"
+    status: "approved" | "rejected",
+    reason?: string
   ) => {
     if (updating) return;
 
     setUpdating({ id: tuition.id, status });
 
     try {
-      const updated = await updateTuitionApproval(tuition.id, status);
+      const updated = await updateTuitionApproval(tuition.id, status, reason);
       setTuitions((current) =>
         current.map((item) => (item.id === updated.id ? updated : item))
       );
@@ -357,6 +360,14 @@ export default function AdminTuitionsPage() {
                           >
                             {status}
                           </span>
+                          {status === "rejected" && tuition.rejectionReason ? (
+                            <p
+                              className="mt-1 max-w-[200px] truncate text-[11px] text-rose-600"
+                              title={tuition.rejectionReason}
+                            >
+                              Reason: {tuition.rejectionReason}
+                            </p>
+                          ) : null}
                           {tuition.isActive === false ? (
                             <p className="mt-1 text-[11px] text-muted-foreground">
                               Inactive by tutor
@@ -388,9 +399,10 @@ export default function AdminTuitionsPage() {
                               size="sm"
                               variant="outline"
                               disabled={isRowUpdating || status === "rejected"}
-                              onClick={() =>
-                                void handleApproval(tuition, "rejected")
-                              }
+                              onClick={() => {
+                                setRejectTarget(tuition);
+                                setRejectionReason(tuition.rejectionReason || "");
+                              }}
                               className="gap-1 border-rose-200 text-rose-700 hover:bg-rose-50 disabled:opacity-50"
                             >
                               {isRowUpdating &&
@@ -412,6 +424,80 @@ export default function AdminTuitionsPage() {
           </Card>
         )}
       </div>
+
+      {/* Rejection Reason Modal */}
+      {rejectTarget ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="reject-dialog-title"
+        >
+          <div className="relative w-full max-w-md rounded-xl border bg-background p-6 shadow-xl">
+            <h2
+              id="reject-dialog-title"
+              className="text-base font-semibold text-foreground"
+            >
+              Reject Tuition
+            </h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Provide a reason for rejecting &quot;{rejectTarget.title}&quot;. The tutor will see this note so they can correct and resubmit their post.
+            </p>
+
+            <div className="mt-4 space-y-2">
+              <label
+                htmlFor="rejection-reason-input"
+                className="text-xs font-medium text-muted-foreground"
+              >
+                Rejection Reason
+              </label>
+              <textarea
+                id="rejection-reason-input"
+                rows={3}
+                value={rejectionReason}
+                onChange={(event) => setRejectionReason(event.target.value)}
+                placeholder="e.g. Please provide a more detailed syllabus and schedule."
+                className="w-full rounded-lg border border-input bg-transparent px-3 py-2 text-sm outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+              />
+            </div>
+
+            <div className="mt-6 flex justify-end gap-2">
+              <Button
+                variant="outline"
+                type="button"
+                disabled={Boolean(updating)}
+                onClick={() => {
+                  setRejectTarget(null);
+                  setRejectionReason("");
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                type="button"
+                disabled={Boolean(updating)}
+                onClick={async () => {
+                  const target = rejectTarget;
+                  const reason = rejectionReason.trim();
+                  setRejectTarget(null);
+                  setRejectionReason("");
+                  await handleApproval(target, "rejected", reason);
+                }}
+                className="gap-1.5"
+              >
+                {updating?.id === rejectTarget.id &&
+                updating?.status === "rejected" ? (
+                  <Loader2 className="size-3.5 animate-spin" />
+                ) : (
+                  <X className="size-3.5" />
+                )}
+                Confirm Rejection
+              </Button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

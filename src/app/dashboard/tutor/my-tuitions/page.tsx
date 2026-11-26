@@ -284,6 +284,14 @@ export default function MyTuitionsPage() {
                           >
                             {status}
                           </span>
+                          {status === "rejected" && tuition.rejectionReason ? (
+                            <p
+                              className="mt-1 max-w-[180px] truncate text-[11px] text-rose-600"
+                              title={tuition.rejectionReason}
+                            >
+                              Reason: {tuition.rejectionReason}
+                            </p>
+                          ) : null}
                         </td>
 
                         <td className="px-5 py-4">

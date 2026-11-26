@@ -153,6 +153,7 @@ export type Tuition = {
   description: string;
   bannerImage?: string;
   approvalStatus: ApprovalStatus;
+  rejectionReason?: string;
   isActive: boolean;
   tutorId?: string;
   tutorName?: string;
@@ -200,6 +201,7 @@ function normalizeTuition(raw: RawTuition): Tuition {
     description: raw.description ?? "",
     bannerImage: raw.bannerImage,
     approvalStatus: raw.approvalStatus ?? "pending",
+    rejectionReason: raw.rejectionReason,
     isActive: raw.isActive !== false,
     tutorId: raw.tutorId,
     tutorName: raw.tutorName,

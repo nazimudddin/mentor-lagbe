@@ -3,6 +3,77 @@
 > Newest entries first. Every task updates this file with **Completed**, **Remaining**, and
 > **Blockers / decisions**. See `AGENT.md` for the full blueprint.
 
+## 2026-11-26 — Admin Dashboard comprehensive audit and verification
+
+**Completed**
+
+- Audited the entire Admin Dashboard against assignment requirements across all routes,
+  pages, navigation, UI, APIs, backend logic, authentication, and role protections.
+- Verified and enhanced the 5 key focus areas:
+  1. **Admin Overview (`/dashboard/admin`)**:
+     - Verified live metrics: Total Users, Total Tutors, Pending Tuitions, Approved
+       Tuitions, and Total Stripe Revenue (USD from completed payments).
+     - Enhanced `GET /admin/overview` student counting with `$or: [{ role: "student" }, { role: { $exists: false } }, { role: null }]`
+       to ensure defensive consistency across accounts.
+     - Verified moderation breakdown bar charts (pending/approved/rejected) and quick links.
+  2. **User Management (`/dashboard/admin/users`)**:
+     - Fixed potential TypeError crash in client-side search filtering by safely handling
+       users with undefined or null name/email fields.
+     - Verified user listing table, role update selector (`student`, `tutor`, `admin`),
+       self-role change guard ("You" badge and backend 400), and last-admin demotion prevention.
+  3. **Tuition Management (`/dashboard/admin/tuitions`)**:
+     - Added the missing admin-facing rejection reason workflow: clicking "Reject" opens
+       a modal prompt where the admin can input a specific rejection reason.
+     - Backend `PATCH /admin/tuitions/:id/approval` now persists `rejectionReason` when
+       rejected and clears it upon approval.
+     - Displayed `rejectionReason` in the admin tuitions table and in the tutor's
+       My Tuitions table (`src/app/dashboard/tutor/my-tuitions/page.tsx`).
+     - Updated `updateTuitionApproval` mutation and `Tuition` interface in `action.ts`.
+  4. **Transaction Management (`/dashboard/admin/transactions`)**:
+     - Verified display of successful Stripe payments (`status: "completed"` only) with
+       revenue summary, user name, email, role, plan name, formatted amount ($),
+       Stripe transaction ID, and payment timestamp.
+     - Enhanced user lookup in `GET /admin/transactions` with email fallback mapping.
+  5. **Admin Profile Update (`/dashboard/admin/update-profile`)**:
+     - Verified profile loading (`GET /profile`), partial update (`PATCH /profile`),
+       ImgBB photo upload with type/size validation and remove dialog, read-only email/role,
+       and form field limits (name, phone, address, bio).
+- Fixed navigation and routing gaps:
+  - Added `src/app/dashboard/page.tsx` client router to redirect logged-in users directly
+    to their role dashboard (`/dashboard/admin`, `/dashboard/tutor/overview`,
+    `/dashboard/student/overview`) or `/sign-in`.
+  - Added `src/app/dashboard/profile/page.tsx` client router so clicking "Update Profile" in
+    the Navbar dropdown and mobile menu routes directly to `/dashboard/admin/update-profile`
+    (or the user's role profile page) instead of returning 404.
+  - Resolved Next.js 16 instant navigation validation on `/dashboard/admin`: separated
+    the client authentication check into `src/app/dashboard/admin/admin-auth-guard.tsx`
+    and added `export const instant = false` to `src/app/dashboard/admin/layout.tsx` and
+    `src/app/dashboard/layout.tsx` so Next.js skips instant prerender validation on dynamic,
+    session-guarded dashboard segments.
+  - Resolved Next.js static prerendering issues on `/` and `/dashboard/student/browse-tuitions/[id]`
+    by adding `"use client"` in `footer.tsx` and `export const instant = false`.
+- **Verification**:
+  - `node --check mentorLagbe-server/index.js` passes.
+  - `npx.cmd tsc --noEmit --incremental false` passes with 0 errors.
+  - `npm.cmd run lint` passes with 0 errors.
+  - `npm.cmd run build` passes with all 28/28 pages statically/dynamically generated.
+
+**Remaining**
+
+1. Replace client-side ImgBB uploads with the assignment's authenticated server-side
+   upload proxy (`POST /api/v1/uploads`) to avoid shipping `NEXT_PUBLIC_IMGBB_API_KEY`.
+2. Public catalog/home polish and final optional features (e.g. dark/light theme toggle).
+
+**Blockers / decisions**
+
+- Rejection reasons are stored directly on tuition documents (`rejectionReason`) and
+  displayed to both admins and tutors; editing a rejected tuition resets it to pending and
+  clears the reason.
+- Admin dashboard route protection is enforced in `src/app/dashboard/admin/layout.tsx`
+  (client session guard) and in Express via `auth` + `verifyAdmin` (authoritative guard).
+
+
+
 ## 2026-11-26 — Tutor Dashboard assignment audit and repairs
 
 **Completed**

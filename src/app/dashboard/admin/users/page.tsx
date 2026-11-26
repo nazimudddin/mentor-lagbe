@@ -127,8 +127,8 @@ export default function AdminUsersPage() {
 
     return users.filter(
       (user) =>
-        user.name.toLowerCase().includes(query) ||
-        user.email.toLowerCase().includes(query)
+        (user.name || "").toLowerCase().includes(query) ||
+        (user.email || "").toLowerCase().includes(query)
     );
   }, [users, search]);
 

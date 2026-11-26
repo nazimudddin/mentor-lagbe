@@ -154,13 +154,14 @@ export async function updateApplicationStatus(
 
 export async function updateTuitionApproval(
   id: string,
-  approvalStatus: "approved" | "rejected"
+  approvalStatus: "approved" | "rejected",
+  reason?: string
 ): Promise<Tuition> {
   const res = await fetch(`${API_URL}/admin/tuitions/${id}/approval`, {
     method: "PATCH",
     credentials: "include",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ approvalStatus }),
+    body: JSON.stringify({ approvalStatus, reason }),
   });
 
   if (!res.ok) {

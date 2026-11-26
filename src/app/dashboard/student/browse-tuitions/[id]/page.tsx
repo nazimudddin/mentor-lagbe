@@ -15,6 +15,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { getPublicTuitionById } from "@/lib/action";
 
+export const instant = false;
+
 export default async function TuitionDetailsPage({
   params,
 }: {
