@@ -1,6 +1,6 @@
 export type ApprovalStatus = "pending" | "approved" | "rejected";
 
-export type ApplicationStatus = "pending" | "accepted" | "rejected";
+export type ApplicationStatus = "pending" | "accepted" | "rejected" | "withdrawn";
 
 export type Application = {
   id: string;
@@ -356,6 +356,18 @@ export const getTuitionById = async (id: string): Promise<Tuition> => {
   }
 
   return res.json();
+};
+
+export const getPublicTuitionById = async (id: string): Promise<Tuition> => {
+  const res = await fetch(`${API_URL}/public-tuitions/${encodeURIComponent(id)}`, {
+    cache: "no-store",
+  });
+
+  if (!res.ok) {
+    throw new Error(await readErrorMessage(res, "Failed to load this tuition."));
+  }
+
+  return normalizeTuition((await res.json()) as RawTuition);
 };
 
 export const getTutorApplications = async (): Promise<Application[]> => {

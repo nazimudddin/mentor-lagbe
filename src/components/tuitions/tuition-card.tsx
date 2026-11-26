@@ -4,6 +4,7 @@ import {
   GraduationCap,
   MapPin,
 } from "lucide-react";
+import Link from "next/link";
 
 import {
   Card,
@@ -127,10 +128,15 @@ export function TuitionCard({ tuition }: TuitionCardProps) {
           </p>
         </div>
 
-        <ApplyButton
-          tuitionId={tuition.id}
-          tuitionTitle={tuition.title}
-        />
+        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+          <Link
+            href={`/dashboard/student/browse-tuitions/${tuition.id}`}
+            className="inline-flex h-10 items-center justify-center rounded-lg border border-input bg-background px-4 text-sm font-medium transition-colors hover:bg-accent"
+          >
+            Details
+          </Link>
+          <ApplyButton tuitionId={tuition.id} tuitionTitle={tuition.title} />
+        </div>
       </CardFooter>
     </Card>
   );

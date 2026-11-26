@@ -342,8 +342,8 @@ export async function uploadProfileImage(file: File): Promise<string> {
 
 
 export async function cancelApplication(id: string): Promise<void> {
-  const res = await fetch(`${API_URL}/applications/${id}`, {
-    method: "DELETE",
+  const res = await fetch(`${API_URL}/applications/${id}/withdraw`, {
+    method: "PATCH",
     credentials: "include",
   });
 

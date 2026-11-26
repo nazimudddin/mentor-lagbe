@@ -9,12 +9,14 @@ type SaveTuitionButtonProps = {
   tuitionId: string;
   tuitionTitle: string;
   className?: string;
+  showLabel?: boolean;
 };
 
 export function SaveTuitionButton({
   tuitionId,
   tuitionTitle,
   className,
+  showLabel = false,
 }: SaveTuitionButtonProps) {
   const { enabled, isSaved, isSaving, toggleSaved } = useSavedTuitions();
 
@@ -48,6 +50,7 @@ export function SaveTuitionButton({
       ) : (
         <Bookmark className="size-4" />
       )}
+      {showLabel ? <span>{saved ? "Saved" : "Save tuition"}</span> : null}
     </button>
   );
 }

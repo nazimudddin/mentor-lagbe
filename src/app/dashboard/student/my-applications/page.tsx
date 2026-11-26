@@ -29,7 +29,7 @@ export default function MyApplicationsPage() {
   const router = useRouter();
   const [applications, setApplications] = useState<Application[]>([]);
   const [loading, setLoading] = useState(true);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [withdrawingId, setWithdrawingId] = useState<string | null>(null);
 
   const fetchApplications = async () => {
     try {
@@ -82,12 +82,16 @@ export default function MyApplicationsPage() {
     if (!confirmed) return;
 
     try {
-      setDeletingId(id);
+      setWithdrawingId(id);
 
       await cancelApplication(id);
 
       setApplications((prev) =>
-        prev.filter((application) => application.id !== id)
+        prev.map((application) =>
+          application.id === id
+            ? { ...application, status: "withdrawn" }
+            : application
+        )
       );
 
       toast.success("Application cancelled successfully");
@@ -98,7 +102,7 @@ export default function MyApplicationsPage() {
           : "Failed to cancel application"
       );
     } finally {
-      setDeletingId(null);
+      setWithdrawingId(null);
     }
   };
 
@@ -337,13 +341,13 @@ export default function MyApplicationsPage() {
                       <Button
                         variant="destructive"
                         size="sm"
-                        disabled={deletingId === application.id}
+                        disabled={withdrawingId === application.id}
                         onClick={() =>
                           handleCancel(application.id)
                         }
                         className="gap-2"
                       >
-                        {deletingId === application.id ? (
+                        {withdrawingId === application.id ? (
                           <Loader2 className="h-4 w-4 animate-spin" />
                         ) : (
                           <Trash2 className="h-4 w-4" />

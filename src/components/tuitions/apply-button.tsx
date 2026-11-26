@@ -37,8 +37,8 @@ export function ApplyButton({ tuitionId, tuitionTitle }: ApplyButtonProps) {
     event.preventDefault();
 
     const message = note.trim();
-    if (message.length < 10) {
-      toast.error("Please write at least 10 characters for the tutor.");
+    if (message.length < 20) {
+      toast.error("Please write at least 20 characters for the tutor.");
       return;
     }
 
@@ -114,7 +114,7 @@ export function ApplyButton({ tuitionId, tuitionTitle }: ApplyButtonProps) {
                   placeholder="Introduce yourself, your current level, and your preferred schedule..."
                   rows={4}
                   required
-                  minLength={10}
+                  minLength={20}
                   maxLength={1000}
                   autoFocus
                 />
