@@ -3,6 +3,61 @@
 > Newest entries first. Every task updates this file with **Completed**, **Remaining**, and
 > **Blockers / decisions**. See `AGENT.md` for the full blueprint.
 
+## 2026-11-26 — Tutor Dashboard assignment audit and repairs
+
+**Completed**
+
+- Audited every Tutor Dashboard route, its data clients, the related Express endpoints,
+  sidebar navigation, plan/payment flow, and public-tuition eligibility against the Tutor
+  requirements in `AGENTS.md` §5, §6, §7, §8, §10.5, and §15.
+- Added `src/app/dashboard/tutor/layout.tsx`, providing the missing Tutor-only client
+  route guard. Guests are sent to sign-in with a safe return URL; student/admin sessions
+  are sent to their own dashboard. Express remains the authoritative guard.
+- Fixed the shared BetterAuth client in `src/lib/auth-client.ts`; session hooks, sign-in,
+  and sign-up now use one configured client, restoring role-aware sidebar navigation.
+- Fixed Tutor profile hydration in `src/app/dashboard/tutor/update-profile/page.tsx`.
+  It now reads `/profile`, preserves existing phone/bio/image data, has loading/error/retry
+  UI, and no longer overwrites saved fields with empty session values.
+- Aligned posting/edit validation with the assignment's 30-character description minimum;
+  added Tutor post-banner JPG/PNG/WebP + 5 MB validation, preview, remove action, and a
+  redirect to My Tuitions after successful submission.
+- Completed Tutor management behavior in `src/app/dashboard/tutor/my-tuitions/page.tsx`
+  and `mentorLagbe-server/index.js`: application counts and posted dates are displayed;
+  only approved posts can be toggled active/closed; editing a rejected post resubmits it
+  as pending; deleting cascades non-accepted applications and blocks an accepted tuition.
+- Completed applicant workflow: applications now require an approved, active tuition and
+  a 20–1000 character note; accepting closes the tuition and rejects its other pending
+  applications, and the applicants table refreshes to show the final state.
+- Expanded Tutor overview metrics to posts used (`n/2` Free or `n` Pro), total applicants,
+  accepted applicants, active tuitions, and a Free-to-Pro CTA. The existing Stripe Checkout,
+  webhook, verify fallback, idempotent payment record, and database plan sync were reviewed
+  and retained.
+- Verification: `npx.cmd tsc --noEmit` passes; `npm.cmd run lint` passes with 11 existing
+  warnings and no errors; `node --check ../mentorLagbe-server/index.js` passes.
+
+**Remaining**
+
+1. Replace client-side ImgBB uploads (`NEXT_PUBLIC_IMGBB_API_KEY`) with the assignment's
+   authenticated server-side upload proxy; the present Tutor banner/profile upload works,
+   but exposes the key in the browser bundle.
+2. Add the admin-facing rejection-reason input/display so a rejected Tutor post can show
+   its reason before the Tutor edits and resubmits it.
+3. The legacy Tutor tuition contract still uses `Online|Offline`, `monthlyFee`, and
+   `daysPerWeek`; it does not yet implement the blueprint's `hybrid`, required offline
+   location, BDT salary, schedule, and requirements fields. This needs a coordinated
+   API/form/public-card migration rather than a partial dashboard-only change.
+4. `npm.cmd run build` is blocked by this environment's inability to fetch the existing
+   Google Geist fonts from `fonts.googleapis.com`; no application compilation failure was
+   reported before that external fetch failure.
+
+**Blockers / decisions**
+
+- Accepted tuitions cannot be deleted; all other deletions cascade their applications.
+  Accepting an applicant closes the post and rejects all other pending applications, as
+  required by the recommended assignment workflow.
+- No Stripe payment was submitted in this audit because doing so would create an external
+  payment/session; the existing checkout/webhook/verify implementation was code-reviewed.
+
 ## 2026-11-25 — Admin overview and user role management
 
 **Completed**

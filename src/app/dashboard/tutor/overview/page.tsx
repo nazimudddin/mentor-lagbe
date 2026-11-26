@@ -107,20 +107,23 @@ export default function TutorOverviewPage() {
 
   const statCards = [
     {
-      label: "Total Posted Tuitions",
-      value: stats?.totalTuitions ?? 0,
+      label: "Posts Used",
+      value:
+        stats?.tuitionLimit === null
+          ? `${stats?.totalTuitions ?? 0}`
+          : `${stats?.totalTuitions ?? 0}/${stats?.tuitionLimit ?? 2}`,
       icon: BookOpen,
       tone: "bg-indigo-50 text-indigo-600",
     },
     {
-      label: "Approved / Active Tuitions",
-      value: stats?.approvedActiveTuitions ?? 0,
+      label: "Accepted Applicants",
+      value: stats?.acceptedApplications ?? 0,
       icon: CheckCircle2,
       tone: "bg-emerald-50 text-emerald-600",
     },
     {
-      label: "Total Applicants",
-      value: stats?.totalApplicants ?? 0,
+      label: "Active Tuitions",
+      value: stats?.approvedActiveTuitions ?? 0,
       icon: Users,
       tone: "bg-sky-50 text-sky-600",
     },
@@ -159,6 +162,24 @@ export default function TutorOverviewPage() {
           </Link>
         </div>
       </div>
+
+      {!isLoading && !error && stats?.plan !== "pro" ? (
+        <div className="mt-5 flex flex-col gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-sm font-semibold text-amber-900">Free plan</p>
+            <p className="text-xs text-amber-800">
+              Upgrade to Pro to post unlimited tuitions.
+            </p>
+          </div>
+          <Link
+            href="/dashboard/tutor/post-tuition"
+            className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-lg bg-amber-700 px-3 py-2 text-sm font-medium text-white hover:bg-amber-800"
+          >
+            <Crown className="h-4 w-4" />
+            View Pro options
+          </Link>
+        </div>
+      ) : null}
 
       {isLoading ? (
         <div className="mt-6 space-y-6">

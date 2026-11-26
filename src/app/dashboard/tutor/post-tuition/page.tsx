@@ -135,6 +135,7 @@ function PostTuitionContent() {
   const checkoutSessionId = searchParams.get("session_id");
 
   const [bannerFile, setBannerFile] = useState<File | null>(null);
+  const [bannerPreview, setBannerPreview] = useState<string | null>(null);
   const [descCount, setDescCount] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -262,6 +263,21 @@ function PostTuitionContent() {
     }
   };
 
+  const handleBannerChange = (file: File | null) => {
+    if (!file) return;
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+      toast.error("Banner must be a JPG, PNG, or WEBP image.");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Banner image must be 5 MB or smaller.");
+      return;
+    }
+    if (bannerPreview) URL.revokeObjectURL(bannerPreview);
+    setBannerFile(file);
+    setBannerPreview(URL.createObjectURL(file));
+  };
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (isSubmitting) return;
@@ -288,9 +304,9 @@ function PostTuitionContent() {
       !subject ||
       !classLevel ||
       monthlyFee <= 0 ||
-      description.length < 50
+      description.length < 30
     ) {
-      toast.error("Please fill all required fields (description min 50 chars).");
+      toast.error("Please fill all required fields (description min 30 chars).");
       return;
     }
 
@@ -317,8 +333,11 @@ function PostTuitionContent() {
       toast.success("Tuition submitted for approval!");
       form.reset();
       setBannerFile(null);
+      if (bannerPreview) URL.revokeObjectURL(bannerPreview);
+      setBannerPreview(null);
       setDescCount(0);
       await loadPlan();
+      router.push("/dashboard/tutor/my-tuitions");
     } catch (error) {
       toast.error(
         error instanceof Error ? error.message : "Failed to post tuition."
@@ -549,15 +568,32 @@ function PostTuitionContent() {
               <span>↑ Upload Image (ImgBB)</span>
               <input
                 type="file"
-                accept="image/*"
-                onChange={(e) => setBannerFile(e.target.files?.[0] || null)}
+                accept="image/jpeg,image/png,image/webp"
+                onChange={(e) => handleBannerChange(e.target.files?.[0] || null)}
                 className="hidden"
               />
             </label>
             {bannerFile && (
-              <span className="ml-3 text-xs text-slate-500">
-                {bannerFile.name}
-              </span>
+              <div className="mt-3 flex items-center gap-3">
+                {bannerPreview ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={bannerPreview} alt="Banner preview" className="h-16 w-24 rounded border object-cover" />
+                ) : null}
+                <div className="text-xs text-slate-500">
+                  <p>{bannerFile.name}</p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (bannerPreview) URL.revokeObjectURL(bannerPreview);
+                      setBannerFile(null);
+                      setBannerPreview(null);
+                    }}
+                    className="mt-1 font-medium text-rose-600 hover:text-rose-700"
+                  >
+                    Remove image
+                  </button>
+                </div>
+              </div>
             )}
           </div>
 
@@ -567,7 +603,7 @@ function PostTuitionContent() {
                 Tuition Description <span className="text-rose-500">*</span>
               </label>
               <span className="text-[11px] text-slate-400">
-                {descCount}/min 50 chars
+                {descCount}/min 30 chars
               </span>
             </div>
             <textarea

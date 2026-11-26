@@ -30,6 +30,14 @@ function formatFee(value: number) {
   return `$${value.toLocaleString()}`;
 }
 
+function formatDate(value?: string) {
+  if (!value) return "—";
+  const date = new Date(value);
+  return Number.isNaN(date.getTime())
+    ? "—"
+    : date.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+}
+
 export default function MyTuitionsPage() {
   const [tuitions, setTuitions] = useState<Tuition[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -223,6 +231,8 @@ export default function MyTuitionsPage() {
                       Subject &amp; Class Level
                     </th>
                     <th className="px-5 py-3 font-medium">Monthly Fee</th>
+                    <th className="px-5 py-3 font-medium">Applicants</th>
+                    <th className="px-5 py-3 font-medium">Posted</th>
                     <th className="px-5 py-3 font-medium">Approval Status</th>
                     <th className="px-5 py-3 font-medium">Active Status</th>
                     <th className="px-5 py-3 text-right font-medium">Actions</th>
@@ -232,6 +242,7 @@ export default function MyTuitionsPage() {
                 <tbody className="divide-y">
                   {tuitions.map((tuition) => {
                     const status = tuition.approvalStatus || "pending";
+                    const canToggleActive = status === "approved";
 
                     return (
                       <tr key={tuition.id} className="hover:bg-slate-50/70">
@@ -255,6 +266,14 @@ export default function MyTuitionsPage() {
                           {formatFee(tuition.monthlyFee)}
                         </td>
 
+                        <td className="px-5 py-4 text-slate-700">
+                          {tuition.applicationsCount ?? 0}
+                        </td>
+
+                        <td className="px-5 py-4 whitespace-nowrap text-xs text-slate-600">
+                          {formatDate(tuition.createdAt)}
+                        </td>
+
                         <td className="px-5 py-4">
                           <span
                             className={cn(
@@ -275,7 +294,12 @@ export default function MyTuitionsPage() {
                               aria-checked={tuition.isActive}
                               aria-label={`Toggle ${tuition.title} active status`}
                               onClick={() => void handleToggle(tuition)}
-                              disabled={togglingId === tuition.id}
+                              disabled={togglingId === tuition.id || !canToggleActive}
+                              title={
+                                canToggleActive
+                                  ? "Toggle active status"
+                                  : "Only approved tuitions can be activated or closed"
+                              }
                               className={cn(
                                 "relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors disabled:cursor-not-allowed disabled:opacity-60",
                                 tuition.isActive ? "bg-emerald-500" : "bg-slate-300"
@@ -295,7 +319,11 @@ export default function MyTuitionsPage() {
                               {togglingId === tuition.id && (
                                 <Loader2 className="h-3 w-3 animate-spin" />
                               )}
-                              {tuition.isActive ? "Active" : "Inactive"}
+                              {canToggleActive
+                                ? tuition.isActive
+                                  ? "Active"
+                                  : "Closed"
+                                : "Available after approval"}
                             </span>
                           </div>
                         </td>

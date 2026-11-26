@@ -52,6 +52,7 @@ console.log(userData.role)
         email: userData.email as string,
         password: userData.password as string,
         role: userData.role as "student" | "tutor",
+        callbackURL:"/"
       } as SignUpPayload);
 
       if (error) {

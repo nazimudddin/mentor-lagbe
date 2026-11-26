@@ -30,6 +30,8 @@ export type TutorOverview = {
     totalTuitions: number;
     approvedActiveTuitions: number;
     totalApplicants: number;
+    acceptedApplications: number;
+    tuitionLimit: number | null;
     plan: "free" | "pro" | string;
   };
   recentTuitions: Tuition[];
@@ -158,6 +160,7 @@ export type Tuition = {
   location?: string;
   createdAt?: string;
   updatedAt?: string;
+  applicationsCount?: number;
 };
 
 export const API_URL =

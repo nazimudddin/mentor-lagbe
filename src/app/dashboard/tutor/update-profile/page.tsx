@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { authClient } from "@/lib/auth-client";
+import { useCallback, useEffect, useState } from "react";
 import {
   updateProfile,
   uploadProfileImage,
 } from "@/lib/mutation";
+import { getMyProfile, type ProfileData } from "@/lib/action";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,15 +18,12 @@ import {
   Mail,
   Phone,
   Save,
+  RefreshCw,
 } from "lucide-react";
 
 import { toast } from "sonner";
 
 export default function ProfilePage() {
-  const { data: session, isPending } = authClient.useSession();
-
-  const user = session?.user;
-
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
@@ -35,14 +32,54 @@ export default function ProfilePage() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   const [loading, setLoading] = useState(false);
+  const [isProfileLoading, setIsProfileLoading] = useState(true);
+  const [profileError, setProfileError] = useState<string | null>(null);
+
+  const applyProfile = useCallback((profile: ProfileData) => {
+    setName(profile.name ?? "");
+    setEmail(profile.email ?? "");
+    setPhone(profile.phone ?? "");
+    setBio(profile.bio ?? "");
+    setImage(profile.image ?? "");
+  }, []);
+
+  const loadProfile = useCallback(async () => {
+    setIsProfileLoading(true);
+    setProfileError(null);
+
+    try {
+      applyProfile(await getMyProfile());
+    } catch (error) {
+      setProfileError(
+        error instanceof Error ? error.message : "Failed to load your profile."
+      );
+    } finally {
+      setIsProfileLoading(false);
+    }
+  }, [applyProfile]);
 
   useEffect(() => {
-    if (user) {
-      setName(user.name || "");
-      setEmail(user.email || "");
-      setImage(user.image || "");
-    }
-  }, [user]);
+    let cancelled = false;
+
+    void getMyProfile()
+      .then((profile) => {
+        if (!cancelled) applyProfile(profile);
+      })
+      .catch((error: unknown) => {
+        if (!cancelled) {
+          setProfileError(
+            error instanceof Error ? error.message : "Failed to load your profile."
+          );
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setIsProfileLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [applyProfile]);
 
   const handleImageChange = (
     event: React.ChangeEvent<HTMLInputElement>
@@ -77,12 +114,14 @@ export default function ProfilePage() {
         profileImage = await uploadProfileImage(selectedFile);
       }
 
-      await updateProfile({
+      const result = await updateProfile({
         name,
         phone,
         bio,
         image: profileImage,
       });
+
+      applyProfile(result.user);
 
       toast.success("Profile updated successfully!");
 
@@ -98,10 +137,22 @@ export default function ProfilePage() {
     }
   };
 
-  if (isPending) {
+  if (isProfileLoading) {
     return (
       <div className="flex min-h-[400px] items-center justify-center">
         <Loader2 className="h-6 w-6 animate-spin" />
+      </div>
+    );
+  }
+
+  if (profileError) {
+    return (
+      <div className="flex min-h-[400px] flex-col items-center justify-center gap-3 px-4 text-center">
+        <p className="text-sm text-muted-foreground">{profileError}</p>
+        <Button type="button" variant="outline" onClick={() => void loadProfile()}>
+          <RefreshCw className="mr-2 h-4 w-4" />
+          Try again
+        </Button>
       </div>
     );
   }

@@ -77,8 +77,8 @@ export default function EditTuitionForm({ id }: { id: string }) {
       return;
     }
 
-    if (description.length < 20) {
-      toast.error("Description must be at least 20 characters.");
+    if (description.length < 30) {
+      toast.error("Description must be at least 30 characters.");
       return;
     }
 
@@ -335,7 +335,7 @@ export default function EditTuitionForm({ id }: { id: string }) {
               Tuition Description <span className="text-rose-500">*</span>
             </label>
             <span className="text-[11px] text-slate-400">
-              {descCount}/min 20 chars
+              {descCount}/min 30 chars
             </span>
           </div>
           <textarea

@@ -99,12 +99,19 @@ export default function ApplicantsPage() {
 
     try {
       const updated = await updateApplicationStatus(application.id, status);
-      setApplications((current) =>
-        current.map((item) => (item.id === updated.id ? updated : item))
-      );
+      if (status === "accepted") {
+        // The server closes the filled tuition and rejects its other pending
+        // applications. Reload so the table immediately reflects that state.
+        const data = await getTutorApplications();
+        setApplications(data);
+      } else {
+        setApplications((current) =>
+          current.map((item) => (item.id === updated.id ? updated : item))
+        );
+      }
       toast.success(
         status === "accepted"
-          ? "Application accepted."
+          ? "Application accepted. The tuition is now closed."
           : "Application rejected."
       );
     } catch (err) {
