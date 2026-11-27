@@ -3,6 +3,51 @@
 > Newest entries first. Every task updates this file with **Completed**, **Remaining**, and
 > **Blockers / decisions**. See `AGENT.md` for the full blueprint.
 
+## 2026-11-27 — Public `/tuitions` catalog (Assignment 9)
+
+**Completed**
+
+- Added the public catalog at `src/app/(root)/tuitions/page.tsx`. It renders inside the
+  existing public shell (Navbar/Footer) and fetches through the existing
+  `getApprovedTuitions()` API, so only `approvalStatus === "approved"` and active tuitions
+  are ever shown.
+- URL-driven search/filter state (`q`, `subject`, `classLevel`, `mode`, `minFee`, `maxFee`)
+  using `searchParams`; the API performs title search and the filter range server-side.
+- Reused `TuitionFilters` (new optional `basePath` prop) and `TuitionCard` (new optional
+  `detailsHref`/`applyAction` props, defaults unchanged for the student dashboard).
+- Added `PublicApplyAction`: guests get “Sign in to apply”, students get the existing
+  `ApplyButton` flow, and tutors/admins see a disabled “Students only” control.
+- Added `src/app/(root)/tuitions/loading.tsx` with responsive filter/card skeletons, plus
+  in-page empty, no-match, and error/retry states.
+- Filter option lists come from the unfiltered approved list, so selecting one filter does
+  not remove the other available options.
+- Added `export const instant = false` to avoid the shared footer's `new Date()` prerender
+  validation failure on this live route.
+
+**Verification**
+
+- `npx.cmd tsc --noEmit --incremental false` passes.
+- `npm.cmd run lint` passes with 0 errors (12 pre-existing warnings).
+- `npm.cmd run build` passes (29/29 pages; `/tuitions` is dynamic).
+- Runtime smoke test against the running API: `/tuitions` returned 5 approved tuitions;
+  `?q=math&subject=Mathematics&mode=Online&minFee=1000&maxFee=10000` returned 1;
+  `?q=zzzznotfound` rendered the empty/no-match state with “Clear all filters”.
+
+**Remaining**
+
+1. Add the public `/tuitions/[id]` detail route; the catalog currently hides the card
+   Details link rather than linking to a route that does not exist yet.
+2. Replace client-side ImgBB uploads with the authenticated server-side upload proxy
+   (pre-existing item).
+
+**Blockers / decisions**
+
+- The public card reuses the dashboard `TuitionCard`; the default Details link and apply
+  button remain unchanged for existing student screens, while `/tuitions` passes its own
+  role-aware action and hides Details until a public detail page exists.
+- No backend changes were needed; the existing public list endpoint already filters by
+  approved/active status, title, subject, class, mode, and fee range.
+
 ## 2026-11-26 — Admin Dashboard comprehensive audit and verification
 
 **Completed**

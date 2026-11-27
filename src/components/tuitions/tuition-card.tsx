@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import {
   BookOpen,
   CalendarDays,
@@ -17,6 +18,10 @@ import type { Tuition } from "@/lib/action";
 
 type TuitionCardProps = {
   tuition: Tuition;
+  /** Override the details link. Pass `null` to hide it (public catalog). */
+  detailsHref?: string | null;
+  /** Override the default student apply button, e.g. for role-aware CTAs. */
+  applyAction?: ReactNode;
 };
 
 function getInitials(name?: string) {
@@ -31,8 +36,16 @@ function getInitials(name?: string) {
     .toUpperCase();
 }
 
-export function TuitionCard({ tuition }: TuitionCardProps) {
+export function TuitionCard({
+  tuition,
+  detailsHref,
+  applyAction,
+}: TuitionCardProps) {
   const fee = Number(tuition.monthlyFee) || 0;
+  const resolvedDetailsHref =
+    detailsHref === undefined
+      ? `/dashboard/student/browse-tuitions/${tuition.id}`
+      : detailsHref;
 
   return (
     <Card className="flex h-full flex-col gap-0 overflow-hidden pt-0">
@@ -129,13 +142,17 @@ export function TuitionCard({ tuition }: TuitionCardProps) {
         </div>
 
         <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
-          <Link
-            href={`/dashboard/student/browse-tuitions/${tuition.id}`}
-            className="inline-flex h-10 items-center justify-center rounded-lg border border-input bg-background px-4 text-sm font-medium transition-colors hover:bg-accent"
-          >
-            Details
-          </Link>
-          <ApplyButton tuitionId={tuition.id} tuitionTitle={tuition.title} />
+          {resolvedDetailsHref ? (
+            <Link
+              href={resolvedDetailsHref}
+              className="inline-flex h-10 items-center justify-center rounded-lg border border-input bg-background px-4 text-sm font-medium transition-colors hover:bg-accent"
+            >
+              Details
+            </Link>
+          ) : null}
+          {applyAction ?? (
+            <ApplyButton tuitionId={tuition.id} tuitionTitle={tuition.title} />
+          )}
         </div>
       </CardFooter>
     </Card>

@@ -28,9 +28,11 @@ type TuitionFiltersProps = {
   initialValues: TuitionFilterValues;
   subjects: string[];
   classLevels: string[];
+  /** Catalog route the filters navigate to. */
+  basePath?: string;
 };
 
-const BROWSE_PATH = "/dashboard/student/browse-tuitions";
+const DEFAULT_BROWSE_PATH = "/dashboard/student/browse-tuitions";
 
 const selectClassName =
   "h-9 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30";
@@ -39,6 +41,7 @@ export function TuitionFilters({
   initialValues,
   subjects,
   classLevels,
+  basePath = DEFAULT_BROWSE_PATH,
 }: TuitionFiltersProps) {
   const router = useRouter();
   const [values, setValues] = useState(initialValues);
@@ -71,7 +74,7 @@ export function TuitionFilters({
     const query = params.toString();
 
     startTransition(() => {
-      router.push(`${BROWSE_PATH}${query ? `?${query}` : ""}`, {
+      router.push(`${basePath}${query ? `?${query}` : ""}`, {
         scroll: false,
       });
     });
@@ -93,7 +96,7 @@ export function TuitionFilters({
     });
 
     startTransition(() => {
-      router.push(BROWSE_PATH, { scroll: false });
+      router.push(basePath, { scroll: false });
     });
   };
 
