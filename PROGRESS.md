@@ -3,6 +3,78 @@
 > Newest entries first. Every task updates this file with **Completed**, **Remaining**, and
 > **Blockers / decisions**. See `AGENT.md` for the full blueprint.
 
+## 2026-11-28 — JWT auth, role middleware, Next.js API proxy
+
+**Completed**
+
+- **BetterAuth JWT plugin** (`src/lib/auth.ts`): added `jwt({ jwt: { issuer, audience,
+  expirationTime: "1h" } })`, explicit `baseURL`, `trustedOrigins` (app URL, Vercel
+  production/preview URLs, localhost, `BETTER_AUTH_TRUSTED_ORIGINS`), and
+  `advanced.defaultCookieAttributes` (`httpOnly`, `SameSite=Lax`, `path=/`). BetterAuth
+  still owns email/password and Google login; Google sign-in now also works from the
+  sign-in page. The client (`src/lib/auth-client.ts`) uses the same-origin auth endpoint
+  with `credentials: "include"` and the JWT client plugin.
+- **Express JWT verification** (`mentorLagbe-server/index.js`): `verifyToken` verifies
+  `Authorization: Bearer <jwt>` with `jose` against
+  `${BETTER_AUTH_URL}/api/auth/jwks`, then loads the fresh user from MongoDB. The old
+  session-cookie lookup is retained as a fallback for direct clients. Added
+  `verifyStudent`, `verifyTutor`, and `verifyAdmin`; applied the role guards to the
+  student, tutor, and admin route groups. JWT claims are not trusted for authorization —
+  the DB role is authoritative, so admin role changes take effect immediately.
+- **Next.js API proxy** (`src/app/api/proxy/[...path]/route.ts`): same-origin Route
+  Handler that forwards requests to `API_ORIGIN`, strips client-supplied `Authorization`,
+  mints a BetterAuth JWT from the session cookie, and forwards both the cookie and JWT to
+  Express. Handles GET/POST/PATCH/PUT/DELETE/OPTIONS, JSON/multipart bodies, query
+  strings, and response streaming.
+- **Frontend transport** (`src/lib/action.ts`): browser calls now use `/api/proxy` instead
+  of `NEXT_PUBLIC_API_URL`, so cookies are first-party on localhost and Vercel. Server
+  components still call Express directly for public catalog reads. The legacy home
+  pricing checkout (`src/components/shared/subcriptions.tsx`) now uses the same proxy and
+  no longer reads an `access-token` from `localStorage`.
+- **CORS/cookie fix**: Express now uses an explicit credentialed allowlist
+  (`CLIENT_URL`, app URLs, Vercel URLs, `CLIENT_URLS`) instead of a single origin. The
+  proxy removes the cross-origin browser hop that caused missing cookies after Vercel
+  deployment.
+- Documented required env vars and the auth flow in `README.md`; added `API_ORIGIN`,
+  `NEXT_PUBLIC_APP_URL`, `BETTER_AUTH_URL`, `JWT_ISSUER`, and `JWT_AUDIENCE` to the local
+  env files. Also removed the unstable `new Date()` copyright year from
+  `src/components/shared/footer.tsx`, which blocked the production prerender.
+
+**Verification**
+
+- `npx tsc --noEmit` passes.
+- `npm run lint` passes with 0 errors (12 pre-existing warnings).
+- `npm run build` passes (31/31 pages; `/api/proxy/[...path]` is dynamic).
+- `node --check mentorLagbe-server/index.js` passes.
+- Runtime tests against the running Next + Express servers:
+  - email sign-up set `better-auth.session_token` and persisted `role`/`plan`;
+  - `/api/auth/token` returned a signed JWT with `iss`/`aud` = `mentorlagbe`;
+  - Express `/profile` returned 401 without a token and 200 with the JWT;
+  - a student JWT got 403 on `/tutor/overview` and `/admin/overview`;
+  - changing the DB role to `tutor` made the same old student-claim JWT pass
+    `/tutor/overview` and fail `/student/overview` (fresh DB role is authoritative);
+  - the Next proxy returned 200 for `/api/proxy/profile` with the session cookie, 401
+    without it, 401 with a forged bearer token, 200 for public tuitions, and successfully
+    proxied `PATCH /api/proxy/profile` with a JSON body;
+  - test user/session/account documents were removed after the run.
+
+**Remaining**
+
+1. Set `API_ORIGIN` on Vercel to the deployed Express URL, and `BETTER_AUTH_URL` on the
+   Express host to the deployed Next URL. Both must be HTTPS in production.
+2. Existing public server components still read Express directly; if they ever need
+   authenticated data, route them through the proxy or forward cookies explicitly.
+3. The public `/tuitions/[id]` detail route remains from the earlier backlog.
+
+**Blockers / decisions**
+
+- JWT issuer/audience are stable strings (`mentorlagbe`) rather than deployment URLs so
+  the Next and Express deployments cannot drift; env overrides are supported.
+- The proxy forwards the original session cookie as well as the JWT, which keeps the
+  cookie fallback working during a JWKS outage without weakening JWT verification.
+- BetterAuth remains in Next.js; Express only verifies tokens. No auth architecture
+  rewrite was needed.
+
 ## 2026-11-27 — Public `/tuitions` catalog (Assignment 9)
 
 **Completed**

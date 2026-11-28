@@ -164,8 +164,19 @@ export type Tuition = {
   applicationsCount?: number;
 };
 
+// Browser requests always go through the same-origin Next.js API proxy. The
+// proxy attaches a BetterAuth JWT and forwards the session cookie to Express,
+// so authentication works on localhost and Vercel without cross-site cookies.
+// Server components (public catalog reads) can call Express directly because
+// they do not depend on the browser session cookie.
 export const API_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+  typeof window !== "undefined"
+    ? "/api/proxy"
+    : (
+        process.env.API_ORIGIN ||
+        process.env.NEXT_PUBLIC_API_URL ||
+        "http://localhost:5000"
+      ).replace(/\/$/, "");
 
 async function readErrorMessage(res: Response, fallback: string) {
   const json = await res.json().catch(() => null);

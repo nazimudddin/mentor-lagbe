@@ -150,7 +150,7 @@ const Footer = () => {
         <div className="mt-14 flex flex-col items-center justify-between gap-5 border-t border-slate-800 pt-7 text-center sm:flex-row">
 
           <p className="text-sm text-slate-400">
-            © {new Date().getFullYear()} MentorLagbe. All rights reserved.
+            © MentorLagbe. All rights reserved.
           </p>
 
           <div className="flex flex-wrap justify-center gap-6 text-sm">

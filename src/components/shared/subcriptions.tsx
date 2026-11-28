@@ -19,7 +19,7 @@ export default function PricingSection({ user }: PricingProps) {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
-  const handleSubscribe = async (targetRole: "student" | "tutor", amount: number, planName: string) => {
+  const handleSubscribe = async (targetRole: "student" | "tutor") => {
     if (!user) {
       toast.error("Please sign in first to upgrade your plan");
       router.push("/sign-in");
@@ -33,18 +33,16 @@ export default function PricingSection({ user }: PricingProps) {
 
     setLoading(true);
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/payments/create-checkout-session`, {
+      // Same-origin proxy: it attaches the BetterAuth JWT/session cookie and
+      // forwards the request to Express. No tokens are read from localStorage.
+      const res = await fetch("/api/proxy/payments/checkout", {
         method: "POST",
+        credentials: "include",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("access-token")}`,
         },
         body: JSON.stringify({
-          userEmail: user.email,
-          userName: user.name,
-          userRole: user.role,
-          planName,
-          amount,
+          plan: targetRole === "student" ? "student_pro" : "tutor_pro",
         }),
       });
 
@@ -190,7 +188,7 @@ export default function PricingSection({ user }: PricingProps) {
 
           <button
             disabled={loading || isProUser || (user !== null && user !== undefined && user.role !== activeTab)}
-            onClick={() => handleSubscribe(activeTab, currentPlans.pro.price, currentPlans.pro.name)}
+            onClick={() => handleSubscribe(activeTab)}
             className="btn btn-primary w-full mt-8"
           >
             {isProUser

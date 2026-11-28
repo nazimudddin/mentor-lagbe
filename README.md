@@ -20,6 +20,48 @@ You can start editing the page by modifying `app/page.tsx`. The page auto-update
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
+## Authentication architecture
+
+- BetterAuth (email/password + Google) runs inside this Next.js app at `/api/auth/*`.
+- The BetterAuth **JWT plugin** issues a short-lived token at `/api/auth/token` and
+  publishes verification keys at `/api/auth/jwks`.
+- Browser calls to the Express API go through the same-origin proxy at
+  `/api/proxy/*` (`src/app/api/proxy/[...path]/route.ts`). The proxy reads the
+  BetterAuth session cookie, mints a JWT, and forwards both the cookie and
+  `Authorization: Bearer <jwt>` to Express. Express verifies the JWT, loads the
+  user from MongoDB, and applies `verifyStudent` / `verifyTutor` / `verifyAdmin`.
+- Because the browser never calls Express cross-origin, auth works on localhost
+  and Vercel without third-party cookies. `SameSite=Lax` + `Secure` (on HTTPS) is
+  sufficient.
+
+### Required environment variables
+
+Next.js (`.env` locally, Project Settings on Vercel):
+
+```bash
+BETTER_AUTH_SECRET=...
+BETTER_AUTH_URL=https://your-app.vercel.app   # public app origin
+NEXT_PUBLIC_APP_URL=https://your-app.vercel.app
+API_ORIGIN=https://your-express-api.example.com
+MONGODB_URI=...
+GOOGLE_CLIENT_ID=...
+GOOGLE_SECRET=...
+```
+
+Express (`mentorLagbe-server/.env`):
+
+```bash
+PORT=5000
+CLIENT_URL=https://your-app.vercel.app
+BETTER_AUTH_URL=https://your-app.vercel.app   # used to fetch /api/auth/jwks
+JWT_ISSUER=mentorlagbe
+JWT_AUDIENCE=mentorlagbe
+MONGODB_URI=...
+```
+
+`JWT_ISSUER` and `JWT_AUDIENCE` must match in both apps. If they are omitted,
+both default to `mentorlagbe`.
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:

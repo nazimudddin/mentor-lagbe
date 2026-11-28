@@ -33,6 +33,14 @@ export default function SignInForm({
 }: SignInFormProps) {
   const [isLoading, setIsLoading] = useState(false);
 const router = useRouter()
+
+  const handleGoogleSignIn = async () => {
+    await signIn.social({
+      provider: "google",
+      callbackURL: "/",
+    });
+  };
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
@@ -98,6 +106,7 @@ const router = useRouter()
               {/* Social Login */}
               <Field>
                 <Button
+                  onClick={handleGoogleSignIn}
                   variant="outline"
                   type="button"
                   className="w-full"
